@@ -3,7 +3,7 @@
 const { Types } = require("mongoose");
 const { product, clothing, electronics, furniture } = require('../models/product.model');
 const { BadRequestError } = require("../core/error.response");
-const { findAllDraftsForShop, findAllPublishForShop, publishProductByShop, unPublishProductByShop, searchProduct, findAllProducts, findProduct, updateProductId } = require("../models/repositories/product.repo");
+const { findAllDraftsForShop, findAllPublishForShop, publishProductByShop, unPublishProductByShop, searchProduct, findAllProducts, findAllCategories, findProduct, updateProductId } = require("../models/repositories/product.repo");
 const { removeUndefinedObject, updateNestedObjectParser } = require('../utils');
 const { insertInventory } = require('../models/repositories/inventory.repo');
 const { pushNotifyToSystem } = require("./notification.service");
@@ -53,8 +53,12 @@ class ProductFactory {
         return await searchProduct({ keySearch })
     }
 
-    static async findAllProducts({ limit = 50, sort = 'ctime', page = 1, filter = { isPublished: true } }) {
-        return await findAllProducts(({ limit, sort, page, filter, select: ['product_shop', 'product_name', 'product_price', 'product_thumb', 'product_shop'] }))
+    static async findAllProducts({ limit = 20, category, sort = 'ctime', page = 1, filter = { isPublished: true } }) {
+        return await findAllProducts(({ limit, category, sort, page, filter, select: ['product_shop', 'product_name', 'product_price', 'product_thumb', 'product_shop', 'product_type'] }))
+    }
+
+    static async findAllCategories() {
+        return await findAllCategories()
     }
 
     static async findProduct({ product_id }) {
@@ -80,7 +84,7 @@ class Product {
 
     // create new product
     async createProduct(product_id) {
-        const newProduct = product.create({ ...this, _id: product_id })
+        const newProduct = await product.create({ ...this, _id: product_id })
         if (newProduct) {
             // add product_stock inventory collection
             const invenData = await insertInventory({
@@ -114,7 +118,11 @@ class Product {
 // define sub-class for different product types Clothing
 class Clothing extends Product {
     async createProduct() {
-        const newClothing = await clothing.create(this.product_attributes)
+        const newClothing = await clothing.create(({
+            ...this.product_attributes,
+            product_shop: this.product_shop,
+            type: this.product_type
+        }))
         if (!newClothing) throw new BadRequestError('create new Clothing error');
         const newProduct = await super.createProduct(newClothing._id);
         if (!newProduct) throw new BadRequestError('create new Product error');
@@ -144,7 +152,8 @@ class Electronics extends Product {
     async createProduct() {
         const newElectronic = await electronics.create({
             ...this.product_attributes,
-            product_shop: this.product_shop
+            product_shop: this.product_shop,
+            type: this.product_type
         })
         if (!newElectronic) throw new BadRequestError('create new Electronics error');
 
@@ -160,7 +169,8 @@ class Furnitures extends Product {
     async createProduct() {
         const newFurniture = await furniture.create({
             ...this.product_attributes,
-            product_shop: this.product_shop
+            product_shop: this.product_shop,
+            type: this.product_type
         })
         if (!newFurniture) throw new BadRequestError('create new Furnitures error');
 

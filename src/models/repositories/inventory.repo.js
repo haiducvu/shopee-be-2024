@@ -15,7 +15,7 @@ const insertInventory = async ({
     })
 }
 
-const reservationInventory = async ({ productId, quantity, cardId }) => {
+const reservationInventory = async ({ productId, quantity, cartId }) => {
     const query = {
         inven_productId: convertToOjectIdMongodb(productId),
         inven_stock: { $gte: quantity }
@@ -24,14 +24,14 @@ const reservationInventory = async ({ productId, quantity, cardId }) => {
             inven_stock: -quantity
         },
         $push: {
-            inven_reservation: {
+            inven_reservations: {
                 quantity,
                 cartId,
                 createOn: new Date()
             }
         }
     }, options = { upsert: true, new: true }
-    return await inventory.updateOne(query, updateSet)
+    return await inventory.updateOne(query, updateSet, options)
 }
 
 module.exports = {

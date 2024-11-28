@@ -6,7 +6,7 @@ const DOCUMENT_NAME = 'Order';
 const COLLECTION_NAME = 'Orders';
 
 const orderSchema = new Schema({
-    order_userId: { type: Number, required: true },
+    order_userId: { type: String, required: true },
     order_checkout: { type: Object, default: {} },
     /**
      * order_checkout = {

@@ -55,9 +55,9 @@
 
 // const initRedis = async () => {
 //     const instanceRedis = redis.createClient()
-//     // {
-//     //     url: 'redis://localhost:6379' // Adjust this URL if your Redis server is not on localhost
-//     // }
+//     {
+//         url: 'redis://localhost:6379' // Adjust this URL if your Redis server is not on localhost
+//     }
 //     client.instanceConnect = instanceRedis
 //     handleEventConnection({ connectionRedis: instanceRedis })
 //     await instanceRedis.connect()
@@ -75,6 +75,8 @@
 //     closeRedis
 // }
 
+'use strict';
+
 const redis = require('redis');
 const { RedisErrorResponse } = require('../core/error.response');
 
@@ -83,17 +85,17 @@ const REDIS_CONFIG = {
     ERROR_MESSAGE: {
         code: -99,
         message: {
-            vn: 'VN Redis loi',
-            en: 'EN Redis error'
-        }
-    }
+            vn: 'VN Redis lỗi',
+            en: 'EN Redis error',
+        },
+    },
 };
 
 const CONNECTION_STATUS = {
     CONNECT: 'connect',
     END: 'end',
     RECONNECT: 'reconnecting',
-    ERROR: 'error'
+    ERROR: 'error',
 };
 
 let client = null;
@@ -101,41 +103,44 @@ let connectionTimeout = null;
 
 function handleConnectionEvent(status, error) {
     console.log(`Redis - Connection status: ${status}`);
-
-    if (status === CONNECTION_STATUS.CONNECT || status === CONNECTION_STATUS.RECONNECT) {
+    if ([CONNECTION_STATUS.CONNECT, CONNECTION_STATUS.RECONNECT].includes(status)) {
         clearTimeout(connectionTimeout);
-    } else if (status === CONNECTION_STATUS.END || status === CONNECTION_STATUS.ERROR) {
+    } else if ([CONNECTION_STATUS.END, CONNECTION_STATUS.ERROR].includes(status)) {
         handleTimeoutError();
     }
-
     if (status === CONNECTION_STATUS.ERROR) {
-        console.log(`Redis - Error details: ${error}`);
+        console.error(`Redis - Error details: ${error}`);
     }
 }
 
 function handleTimeoutError() {
     connectionTimeout = setTimeout(() => {
-        console.log('RedisErrorResponses')
-        // throw new RedisErrorResponse({
-        //     message: REDIS_CONFIG.ERROR_MESSAGE.message.vn,
-        //     statusCode: REDIS_CONFIG.ERROR_MESSAGE.code
-        // });
+        console.error('Redis connection timeout');
+        throw new RedisErrorResponse({
+            message: REDIS_CONFIG.ERROR_MESSAGE.message.vn,
+            statusCode: REDIS_CONFIG.ERROR_MESSAGE.code,
+        });
     }, REDIS_CONFIG.CONNECT_TIMEOUT);
 }
 
 function setupEventListeners(redisClient) {
-    Object.values(CONNECTION_STATUS).forEach(status => {
-        redisClient.on(status, (error) => handleConnectionEvent(status, error));
-    });
+    redisClient.on(CONNECTION_STATUS.CONNECT, () => handleConnectionEvent(CONNECTION_STATUS.CONNECT));
+    redisClient.on(CONNECTION_STATUS.END, () => handleConnectionEvent(CONNECTION_STATUS.END));
+    redisClient.on(CONNECTION_STATUS.RECONNECT, () => handleConnectionEvent(CONNECTION_STATUS.RECONNECT));
+    redisClient.on(CONNECTION_STATUS.ERROR, (error) => handleConnectionEvent(CONNECTION_STATUS.ERROR, error));
 }
 
 async function initRedis() {
     client = redis.createClient();
     setupEventListeners(client);
     await client.connect();
+    console.log('Redis client connected successfully.');
 }
 
 function getRedis() {
+    if (!client) {
+        throw new Error('Redis client is not initialized. Call initRedis() first.');
+    }
     return client;
 }
 
@@ -143,11 +148,12 @@ async function closeRedis() {
     if (client) {
         await client.quit();
         client = null;
+        console.log('Redis client connection closed.');
     }
 }
 
 module.exports = {
     initRedis,
     getRedis,
-    closeRedis
+    closeRedis,
 };

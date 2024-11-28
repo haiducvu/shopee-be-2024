@@ -47,7 +47,7 @@ class BadRequestError extends ErrorResponse {
     }
 }
 
-class AuthFailureError extends ErrorResponse {
+class AuFailureError extends ErrorResponse {
     constructor(message = ReasonPhrases.UNAUTHORIZED, statusCode = StatusCodes.UNAUTHORIZED) {
         super(message, statusCode)
     }
@@ -74,7 +74,7 @@ class RedisErrorResponse extends ErrorResponse {
 module.exports = {
     ConflictRequestError,
     BadRequestError,
-    AuthFailureError,
+    AuFailureError,
     NotFoundError,
     ForbiddenError,
     ErrorResponse,

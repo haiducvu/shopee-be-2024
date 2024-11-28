@@ -13,14 +13,19 @@ class UploadController {
     }
 
     uploadFileThumb = async (req, res, next) => {
-        const { file } = req
+        const { file, body, query, params } = req;
+        const shopId = body.shopId || query.shopId || params.shopId;
+        const productId = body.productId || query.productId || params.productId;
+
         if (!file) {
             return new BadRequestError('No file uploaded')
         }
         new SuccessResponse({
             message: 'Upload file success',
             metadata: await uploadService.uploadImageFromLocal({
-                path: file.path
+                path: file.path,
+                shopId,
+                productId
             })
         }).send(res)
     }

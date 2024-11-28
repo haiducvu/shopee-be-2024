@@ -50,7 +50,7 @@ const sendEmailToken = async ({ email = null }) => {
         const content = replacePlaceholder(
             template.tem_html,
             {
-                link_verify: `http://localhost:3056/cgp/welcome-back?token=${token.otp_token}`
+                link_verify: `http://localhost:3056/v1/api/user/welcome-back?token=${token.otp_token}`
             }
         )
         sendEmailLinkVerify({

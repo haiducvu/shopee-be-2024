@@ -1,6 +1,6 @@
 'use strict'
 
-const { AuthFailureError } = require('../core/error.response')
+const { AuFailureError } = require('../core/error.response')
 const { roleList } = require('../services/rbac.service')
 const rbac = require('./role.middleware')
 
@@ -22,7 +22,7 @@ const grantAccess = (action, resource) => {
             const permission = rbac.can(rol_name)[action](resource);
             console.log('permission', permission)
             if (!permission.granted) {
-                throw new AuthFailureError('You dont have permission to perform this action')
+                throw new AuFailureError('You dont have permission to perform this action')
             }
             next();
         } catch (error) {

@@ -1,7 +1,7 @@
 "use strict";
 
 const { Types } = require("mongoose");
-const { getSelectData, unGetSelectData, convertToOjectIdMongodb } = require('../../utils')
+const { getSelectData, unGetSelectData, convertToOjectIdMongodb, removeUndefinedObject } = require('../../utils')
 
 const {
     product,
@@ -20,8 +20,8 @@ const findAllPublishForShop = async ({ query, limit, skip }) => {
 
 const publishProductByShop = async ({ product_shop, product_id }) => {
     const foundShop = await product.findOne({
-        product_shop: new Types.ObjectId(product_shop),
-        _id: new Types.ObjectId(product_id),
+        product_shop,//: new Types.ObjectId(product_shop),
+        _id: product_id//new Types.ObjectId(product_id),
     });
     if (!foundShop) return null
 
@@ -68,13 +68,55 @@ const searchProduct = async ({ keySearch }) => {
     return results;
 }
 
-const findAllProducts = async ({ limit, sort, page, filter, select }) => {
+const findAllProducts = async ({ limit, sort, page, filter, select, category }) => {
+    const addFilter = {
+        ...filter,
+        product_type: category
+    }
+    const objFilter = removeUndefinedObject(addFilter)
     const skip = (page - 1) * limit;
+    const totalProducts = await product.find(objFilter)
     const sortBy = sort === 'ctime' ? { _id: -1 } : { _id: 1 }
-    const products = await product.find(filter)
-        .sort(sortBy).skip(skip).select(getSelectData(select)).lean()
-    return products
+    const products = await product.find(objFilter)
+        .sort(sortBy).skip(skip).limit(limit).select(getSelectData(select)).lean()
+    return {
+        products,
+        pagination: {
+            limit: Number(limit),
+            page: Number(page),
+            page_size: Math.round(totalProducts.length / limit)
+          },
+    }
 }
+// electronics,
+// clothing,
+// furniture,
+const findAllCategories  = async () => {
+    // const x = await clothing.find({}) // Ensure this is the correct model name
+    //     .populate('product_shop', 'name') // Populating only the 'name' field
+    //     .exec();
+
+    // console.log('x===============', x)
+    // return x;
+
+    const data = await [
+        {
+            _id: 1,
+            name: 'Clothing',
+        },
+        {
+            _id: 2,
+            name: 'Electronics',
+        },
+        {
+            _id: 3,
+            name: 'Furniture',
+        }
+    ]
+
+    return data;
+}
+
 
 const findProduct = async ({ product_id, unSelect }) => {
     return await product.findById(product_id).select(unGetSelectData(unSelect))
@@ -97,16 +139,20 @@ const getProductById = async (productId) => {
 
 const checkProductByServer = async (products) => {
     return await Promise.all(products.map(async product => {
-        const foundProduct = await getProductById(product.product_id)
+        const foundProduct = await getProductById(product._id)
         if (foundProduct) {
             return {
                 price: foundProduct.product_price,
-                quantity: product_quantity,
-                productId: product.productId
+                quantity: foundProduct.product_quantity,
+                productId: foundProduct._id
             }
 
         }
     }))
+}
+
+const findAllProductPublishByShopId = async(shopId) => {
+    return await product.find({product_shop: shopId, isPublished: true}).lean()
 }
 
 module.exports = {
@@ -114,10 +160,12 @@ module.exports = {
     findAllPublishForShop,
     publishProductByShop,
     unPublishProductByShop,
+    findAllCategories,
     searchProduct,
     findAllProducts,
     findProduct,
     updateProductId,
     getProductById,
-    checkProductByServer
+    checkProductByServer,
+    findAllProductPublishByShopId
 };

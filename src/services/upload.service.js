@@ -5,6 +5,8 @@ const crypto = require('crypto')
 // const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 const { getSignedUrl } = require('@aws-sdk/cloudfront-signer')
 const { S3Client } = require('@aws-sdk/client-s3')
+const imagesModel = require('../models/images.model')
+const productModel = require('../models/product.model')
 
 const randomName = () => crypto.randomBytes(16).toString('hex')
 
@@ -78,16 +80,40 @@ const uploadImageFromURL = async () => {
     }
 }
 
+// const updateProductId = async ({
+//     product_id,
+//     bodyUpdate,
+//     model,
+//     isNew = true
+// }) => {
+//     return await model.findByIdAndUpdate(product_id, bodyUpdate, {
+//         new: isNew
+//     })
+// }
+
 // 2. upload from image local
-const uploadImageFromLocal = async (path, folderName = 'product/8409') => {
+const uploadImageFromLocal = async (path) => {
     try {
         const result = await cloudinary.uploader.upload(path.path, {
-            folder: folderName,
-            public_id: 'thumbnail-test'
+            folder: `product/${path.shopId}/${path.productId}`,
+            public_id: `${path.shopId}/-/${path.productId}`
         })
+
+        // store images in DB
+        await imagesModel.create({ image_url: result.url, shop_id: path.shopId, product_id: path.productId })
+
+        // code temp to update image for product when upload
+
+        // await productModel.product.findByIdAndUpdate(
+        //     path.productId,
+        //     { product_thumb: result.url },
+        //     { new: true } // This option returns the updated document
+        // );
+
         return {
             image_url: result.url,
-            shopId: 8409,
+            shopId: path.shopId,
+            productId: path.productId,
             thumb_url: await cloudinary.url(result.public_id, {
                 width: 200,
                 height: 200,

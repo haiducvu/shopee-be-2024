@@ -22,7 +22,9 @@ const removeUndefinedObject = obj => {
             delete obj[k]
         }
     })
+    return obj
 }
+
 
 const updateNestedObjectParser = obj => {
     const final = {}

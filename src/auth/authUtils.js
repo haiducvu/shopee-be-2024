@@ -2,7 +2,7 @@
 
 const JWT = require('jsonwebtoken')
 const { asyncHandler } = require('./checkAuth')
-const { AuFailureError, NotFoundError } = require('../core/error.response')
+const { AuFailureError, NotFoundError, ErrorResponse } = require('../core/error.response')
 const { findByUserId } = require('../services/keyToken.service')
 const HEADER = {
     API_KEY: 'x-api-key',
@@ -14,11 +14,11 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
     try {
         // accessToken
         const accessToken = await JWT.sign(payload, publicKey, {
-            expiresIn: '2 days'
+            expiresIn: '3s' // '14 days'
         })
 
         const refreshToken = await JWT.sign(payload, privateKey, {
-            expiresIn: '7 days'
+            expiresIn: '5s' // '20 days'
         })
 
         JWT.verify(accessToken, publicKey, (err, decode) => {
@@ -61,7 +61,7 @@ const authentication = asyncHandler(async (req, res, next) => {
         req.user = decodeUser;
         return next();
     } catch (error) {
-        throw error;
+        throw new AuFailureError(error.message)
     }
 })
 

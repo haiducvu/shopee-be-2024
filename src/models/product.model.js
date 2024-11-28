@@ -67,6 +67,7 @@ const clothingSchema = new Schema({
     brand: { type: String, require: true },
     size: String,
     material: String,
+    type: String,
     product_shop: { type: Schema.Types.ObjectId, ref: 'Shop' }
 }, {
     collection: 'clothes',
@@ -80,6 +81,7 @@ const electronicSchema = new Schema({
         type: String,
         require: true
     },
+    type: String,
     model: String,
     color: String,
     product_shop: { type: Schema.Types.ObjectId, ref: 'Shop' }
@@ -91,6 +93,7 @@ const electronicSchema = new Schema({
 const furnitureSchema = new Schema({
     brand: { type: String, require: true },
     size: String,
+    type: String,
     material: String,
     product_shop: { type: Schema.Types.ObjectId, ref: 'Shop' }
 }, {

@@ -7,6 +7,6 @@ const { asyncHandler } = require('../../auth/checkAuth');
 const { authentication } = require('../../auth/authUtils');
 
 router.post('/review', asyncHandler(checkoutController.checkoutReview))
-
+router.post('/buy-products', asyncHandler(checkoutController.orderByUser))
 
 module.exports = router;

@@ -27,9 +27,11 @@ class CartController {
     }
 
     listToCart = async (req, res, next) => {
+        // console.log('keyStore', req.keyStore)
+        const cart_userId = req.headers['x-client-id']
         new SuccessResponse({
             message: 'List Cart Success',
-            metadata: await CartService.getListUserCart(req.query)
+            metadata: await CartService.getListUserCart({query: req.query, cart_userId})
         }).send(res)
     }
 }
