@@ -2,8 +2,9 @@
 
 const JWT = require('jsonwebtoken')
 const { asyncHandler } = require('./checkAuth')
-const { AuFailureError, NotFoundError, ErrorResponse } = require('../core/error.response')
+const { AuFailureError, NotFoundError, ErrorResponse, BadRequestError, ForbiddenError } = require('../core/error.response')
 const { findByUserId } = require('../services/keyToken.service')
+const KeyTokenService = require('../services/keyToken.service')
 const HEADER = {
     API_KEY: 'x-api-key',
     CLIENT_ID: 'x-client-id',
@@ -14,11 +15,11 @@ const createTokenPair = async (payload, publicKey, privateKey) => {
     try {
         // accessToken
         const accessToken = await JWT.sign(payload, publicKey, {
-            expiresIn: '3s' // '14 days'
+            expiresIn: '14 days' // '14 days'
         })
 
         const refreshToken = await JWT.sign(payload, privateKey, {
-            expiresIn: '5s' // '20 days'
+            expiresIn: '20 days' // '20 days'
         })
 
         JWT.verify(accessToken, publicKey, (err, decode) => {
@@ -55,6 +56,7 @@ const authentication = asyncHandler(async (req, res, next) => {
     if (!accessToken) throw new AuFailureError('Invalid Request');
 
     try {
+        // check access token expired
         const decodeUser = JWT.verify(accessToken, keyStore.publicKey);
         if (userId !== decodeUser.userId) throw new AuFailureError('Invalid UserId');
         req.keyStore = keyStore;
@@ -69,8 +71,20 @@ const verifyJWT = async (token, keySecret) => {
     return await JWT.verify(token, keySecret)
 }
 
+async function verifyJWTRefreshToken(token, keySecret, userId) {
+    try {
+        const decoded = await JWT.verify(token, keySecret)
+        return decoded
+    } catch (error) {
+        await KeyTokenService.deleteKeyById(userId)
+        throw new ForbiddenError('Something went wrong happen! Please re-login')
+        throw new BadRequestError('Invalid token or token expired')
+    }
+}
+
 module.exports = {
     createTokenPair,
     authentication,
-    verifyJWT
+    verifyJWT,
+    verifyJWTRefreshToken
 }

@@ -4,10 +4,11 @@ const shopModel = require("../models/shop.model");
 const bcrypt = require("bcrypt");
 const crypto = require("crypto");
 const KeyTokenService = require("./keyToken.service");
-const { createTokenPair, verifyJWT } = require("../auth/authUtils");
+const { createTokenPair, verifyJWT, verifyJWTRefreshToken } = require("../auth/authUtils");
 const { getInfoData } = require("../utils");
 const { BadRequestError, AuFailureError, ForbiddenError } = require("../core/error.response");
 const { findByEmail } = require("./shop.service");
+const keytokenModel = require("../models/keytoken.model");
 
 const RoleShop = {
     SHOP: 'SHOP',
@@ -19,27 +20,27 @@ const RoleShop = {
 class AccessService {
 
     static handleRefreshToken = async (refreshToken) => {
+
         const foundToken = await KeyTokenService.findByRefreshTokenUsed(refreshToken);
 
         if (foundToken) {
-            const { userId, email } = await verifyJWT(refreshToken, foundToken.privateKey)
-            await KeyTokenService.deleteKeyById(userId)
-            throw new ForbiddenError('Something went wrong happen! Please re-login')
+            // check refresh token expired
+            const { userId, email } = await verifyJWTRefreshToken(refreshToken, foundToken.privateKey, foundToken.user)
         }
 
         const holderToken = await KeyTokenService.findByRefreshToken(refreshToken)
-        if (!holderToken) throw new AuFailureError('Shop not registered')
+        if (!holderToken) throw new AuFailureError('Shop not registered1')
 
         const { userId, email } = await verifyJWT(refreshToken, holderToken.privateKey)
 
         const foundShop = await findByEmail({ email })
-        if (!foundShop) throw new AuFailureError('Shop not registered')
+        if (!foundShop) throw new AuFailureError('Shop not registered2')
 
         const tokens = await createTokenPair({ userId, email }, holderToken.publicKey, holderToken.privateKey)
 
-        await holderToken.update({
+        await keytokenModel.findByIdAndUpdate(holderToken._id, {
             $set: {
-                refreshToken: tokens.refreshToken
+                refreshToken: refreshToken
             },
             $addToSet: {
                 refreshTokensUsed: refreshToken
@@ -48,7 +49,11 @@ class AccessService {
 
         return {
             user: { userId, email },
-            tokens
+            tokens : {
+                ...tokens,
+                refreshToken: refreshToken
+
+            }
         }
     }
 
