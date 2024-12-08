@@ -51,14 +51,14 @@ class AccessService {
             user: { userId, email },
             tokens : {
                 ...tokens,
-                refreshToken: refreshToken
+                refreshToken: refreshToken  
 
             }
         }
     }
 
-    static logout = async (keyStore) => {
-        const delKey = await KeyTokenService.removeKeyById(keyStore._id);
+    static logout = async (userId) => {
+        const delKey = await KeyTokenService.removeKeyByUserId(userId);
         return delKey;
     }
 
