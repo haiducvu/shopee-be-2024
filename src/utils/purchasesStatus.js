@@ -1,4 +1,4 @@
-export const purchasesStatus = {
+const purchasesStatus = {
     inCart: -1,
     all: 0,
     waitForConfirmation: 1,
@@ -7,3 +7,5 @@ export const purchasesStatus = {
     delivered: 4,
     cancelled: 5
 }
+
+module.exports = { purchasesStatus }

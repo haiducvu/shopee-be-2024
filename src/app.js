@@ -14,6 +14,8 @@ const path = require('path');
 const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const unlink = promisify(fs.unlink);
+const { startListenConsumer } = require("../src/message-queue/consumer/order-consumer");
+ //./src/message-queue/consumer/order-consumer.js
 
 const clearLogsFolder = async () => {
     const folderPath = path.join(__dirname, '../logs'); // Path to the logs folder
@@ -60,19 +62,20 @@ app.use((req, res, next) => {
     next();
 })
 
-
-// test pub.sub redis 
-// const inventoryTest = require('./tests/inventory.test');
-// const productTest = require('./tests/product.test');
-
-// productTest.purchaseProduct('product:001', 10)
-
 // init mongo db
 require("./dbs/init.mongodb");
 
 // init mongo redis
 const initRedis = require("./dbs/init.redis")
 initRedis.initRedis()
+
+// startListenConsumer();
+
+// test pub.sub redis 
+// const inventoryTest = require('./tests/inventory.test');
+// const productTest = require('./tests/product.test');
+
+// productTest.purchaseProduct('product:001', 10)
 
 // init mysql
 // require("./dbs/init.mysql");

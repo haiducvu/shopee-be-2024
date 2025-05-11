@@ -1,28 +1,48 @@
-version: '3'
-services:
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
+version: '3.8'
 
-  kafka:
-    image: confluentinc/cp-kafka:latest
-    container_name: kafka
-    depends_on:
-      - zookeeper
+services:
+  api:
+    build: .
     ports:
-      - "9092:9092"
+      - "${PRO_APP_PORT}:${PRO_APP_PORT}"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      # Uncomment the line below to use Kraft (KRaft) instead of Zookeeper
-      # KAFKA_PROCESS_ROLES: 'broker,controller'
+      - NODE_ENV=prod
+      - PRO_APP_PORT=${PRO_APP_PORT}
+      - PRO_DB_HOST=mongodb
+      - PRO_DB_PORT=${PRO_DB_PORT}
+      - PRO_DB_NAME=${PRO_DB_NAME}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - mongodb
+      - redis
+    volumes:
+      - ./logs:/usr/src/app/logs
+    networks:
+      - backend-network
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - backend-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend-network
+
+networks:
+  backend-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  redis_data:

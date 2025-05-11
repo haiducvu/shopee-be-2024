@@ -15,7 +15,7 @@ const acquireLock = async (productId, quantity, cartId) => {
         try {
             // Use SET with NX option to acquire lock
             const result = await redisClient.set(key, expireTime, {
-                NX: true,
+                NX: true, // Set only if key doesn't exist
                 PX: expireTime, // Expire time in milliseconds
             });
             console.log(`Key set result for ${key}: ${result}`);

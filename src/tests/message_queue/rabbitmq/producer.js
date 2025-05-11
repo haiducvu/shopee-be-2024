@@ -7,12 +7,12 @@ const runProducer = async () => {
         const connection = await amqp.connect('amqp://localhost');
         const channel = await connection.createChannel();
 
-        const queueName = 'test-topic';
+        const queueName = 'email_queue'; // test-topic
         await channel.assertQueue(queueName, {
             durable: true
         });
         // send messages to consumer channel
-        channel.sendToQueue(queueName, Buffer.from(message));
+        channel.sendToQueue(queueName, Buffer.from(message), { persistent: true });
         console.log('Message sent to queue: ', message);
         setTimeout(() => {
             connection.close();

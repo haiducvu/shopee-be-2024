@@ -170,7 +170,7 @@ const roleList = async ({
                 }
             }
         ])
-        console.log('roles', roles)
+        // console.log('roles', roles)
         return roles;
     } catch (error) {
         // return error

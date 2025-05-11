@@ -17,10 +17,11 @@ const grantAccess = (action, resource) => {
                     userId: 999
                 }
             )
+            // console.log('roles', roles)
             rbac.setGrants(roles)
             const rol_name = req.query.role;
             const permission = rbac.can(rol_name)[action](resource);
-            console.log('permission', permission)
+            // console.log('permission', permission)
             if (!permission.granted) {
                 throw new AuFailureError('You dont have permission to perform this action')
             }

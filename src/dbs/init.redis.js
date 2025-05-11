@@ -131,7 +131,23 @@ function setupEventListeners(redisClient) {
 }
 
 async function initRedis() {
+    const redisHost = process.env.REDIS_HOST || 'redis';
+    const redisPort = process.env.REDIS_PORT || 6379;
+
     client = redis.createClient();
+    // client = redis.createClient({
+    //     url: `redis://${redisHost}:${redisPort}`,
+    //     socket: {
+    //         reconnectStrategy: (retries) => {
+    //             if (retries > 10) {
+    //                 console.error('Max reconnection attempts reached');
+    //                 return new Error('Max reconnection attempts reached');
+    //             }
+    //             return Math.min(retries * 100, 3000);
+    //         }
+    //     }
+    // });
+
     setupEventListeners(client);
     await client.connect();
     console.log('Redis client connected successfully.');

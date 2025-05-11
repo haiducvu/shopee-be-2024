@@ -5,7 +5,9 @@ const { checkProductByServer, findAllProductPublishByShopId } = require('../mode
 const { getDiscountAmount } = require('../services/discount.service');
 const { acquireLock, releaseLock } = require('./redis.service');
 const { order } = require('../models/order.model');
-const { product } = require('../models/product.model') 
+const { product } = require('../models/product.model')
+const { getRedis } = require('../dbs/init.redis');
+const { EmailProducer } = require('../message-queue/producer/email-producer');
 
 class CheckoutService {
     // login and without login
@@ -43,7 +45,7 @@ class CheckoutService {
         if (!foundCart) {
             throw new NotFoundError('Cart not found')
         }
-        
+
         const checkout_order = {
             totalPrice: 0, // tong tien hang
             feeShip: 0, // phi van chuyen
@@ -52,8 +54,8 @@ class CheckoutService {
         }
         const productsPriceSelected = []
 
-       // tinh tong tien bill
-        for(let i = 0; i < shop_order_ids.length; i++) {
+        // tinh tong tien bill
+        for (let i = 0; i < shop_order_ids.length; i++) {
             const { shopId, product_id, buy_count, shop_discounts = [] } = shop_order_ids[i];
             // get all product buy shopId
             const item_products = await findAllProductPublishByShopId(shopId);
@@ -112,6 +114,15 @@ class CheckoutService {
     static async orderByUser({
         cartId, userId, shop_order_ids
     }) {
+
+        // try transaction redis for lock product
+        // Example usage
+        // const redisClient = getRedis();
+        // const productStockKey = `product:product123:stock`;
+        // await redisClient.set(productStockKey, 10);
+        // this.placeOrder('product123', 2, 'user456');
+        //
+
         const { checkout_order } = await CheckoutService.checkoutReview({
             cartId,
             userId,
@@ -123,8 +134,9 @@ class CheckoutService {
             const { product_id, buy_count } = shop_order_ids[i];
             const keyLock = await acquireLock(product_id, buy_count, cartId)
             acquireProduct.push(keyLock ? true : false)
+            console.log('acquireProduct', acquireProduct, keyLock)
             if (keyLock) {
-                await releaseLock(keyLock)
+                // await releaseLock(keyLock)
             }
         }
 
@@ -147,6 +159,9 @@ class CheckoutService {
         //     await removeProductInCart
         // }
 
+        // handle Gởi Email xác nhận đơn hàng
+        new EmailProducer().sendEmail('Order confirmation email');
+
         return newOrder
     }
 
@@ -165,6 +180,50 @@ class CheckoutService {
     // update order status [Shop | Admin]
     static async updateOrderStatusByShop(orderId, status) {
     }
+
+
+    static async placeOrder(productId, quantity, userId) {
+    const redisClient = getRedis();
+    const productStockKey = `product:${productId}:stock`; // Key for product stock
+    const orderLogKey = `order:${userId}:${Date.now()}`; // Key for user order log
+
+    try {
+        
+        // Watch the product stock to avoid race conditions
+        await redisClient.watch(productStockKey);
+
+        // Check current stock
+        const currentStock = await redisClient.get(productStockKey);
+        if (!currentStock || parseInt(currentStock) < quantity) {
+            console.log('Insufficient stock.');
+            return;
+        }
+
+        // Start a transaction
+        const transaction = redisClient.multi();
+
+        // Deduct stock
+        transaction.decrBy(productStockKey, quantity);
+
+        // Log the order
+        transaction.set(orderLogKey, JSON.stringify({ productId, quantity, userId, date: new Date() }));
+
+        // Execute the transaction
+        const result = await transaction.exec();
+
+        if (result === null) {
+            console.log('Transaction failed due to a race condition. Try again.');
+        } else {
+            console.log('Order placed successfully:', result, orderLogKey);
+        }
+    } catch (err) {
+        console.error('Error placing order:', err);
+    } finally {
+        // Unwatch the key
+        await redisClient.unwatch();
+    }
+}
+
 }
 
 module.exports = CheckoutService

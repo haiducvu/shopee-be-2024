@@ -31,6 +31,8 @@ const runProducer = async () => {
             deadLetterRoutingKey: notificationRoutingKeyDLX
         })
 
+        console.log('queueResult', queueResult)
+
         // 3. bindQueue
         await channel.bindQueue(queueResult.queue, notificationExchange)
 
